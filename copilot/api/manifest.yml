@@ -9,7 +9,9 @@ type: Load Balanced Web Service
 
 image:
   # Path to your service's Dockerfile.
-  build: api/Dockerfile
+  build:
+    builder: paketobuildpacks/builder:base
+    context: api
   # Port exposed through your container to route traffic to it.
   port: 8080
 
@@ -18,7 +20,7 @@ http:
   # To match all requests you can use the "/" path. 
   path: '/'
   # You can specify a custom health check path. The default is "/"
-  healthcheck: '/_healtcheck'
+  healthcheck: '/_healthcheck'
 
 # Number of CPU units for the task.
 cpu: 256

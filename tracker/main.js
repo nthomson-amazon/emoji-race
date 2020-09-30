@@ -1,7 +1,7 @@
 const express = require('express');
 const EventSource = require('eventsource');
 const app = express();
-const port = 3000;
+const port = 8080;
 const maxResponseSize = 50;
 
 const emojis = new Map();
