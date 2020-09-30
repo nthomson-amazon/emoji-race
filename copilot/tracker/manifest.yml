@@ -11,13 +11,13 @@ type: Backend Service
 image:
   # Path to your service's Dockerfile.
   build:
-    builder: paketobuildpacks/builder:base
+    builder: paketobuildpacks/builder:full
     context: tracker
   # Port exposed through your container to route traffic to it.
-  port: 8080
+  port: 3000
   healthcheck:
     # The command the container runs to determine if it's healthy.
-    command: ["CMD-SHELL", "curl -f http://localhost:8080/_healthcheck || exit 1"]
+    command: ["CMD-SHELL", "curl -f http://localhost:3000/_healthcheck || exit 1"]
     interval: 20s  # Time period between healthchecks. Default is 10s.
     retries: 3      # Number of times to retry before container is deemed unhealthy. Default is 2.
     timeout: 30s     # How long to wait before considering the healthcheck failed. Default is 5s.

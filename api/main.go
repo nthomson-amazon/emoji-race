@@ -27,7 +27,7 @@ func (s *server) routes() {
 
 func (s *server) handleEmojis() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		endpoint := fmt.Sprintf("http://tracker.%s:8080/", os.Getenv("COPILOT_SERVICE_DISCOVERY_ENDPOINT"))
+		endpoint := fmt.Sprintf("http://tracker.%s:3000/", os.Getenv("COPILOT_SERVICE_DISCOVERY_ENDPOINT"))
 		resp, err := http.Get(endpoint)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
