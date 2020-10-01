@@ -1,7 +1,7 @@
 # This YAML file defines the relationship and deployment ordering of your environments.
 
 # The name of the pipeline
-name: pipeline-emoji-race-efekarakus-emoji-race
+name: pipeline-buildpack-demo-nthomson-amazon-emoji-race
 
 # The version of the schema used in this template
 version: 1
@@ -14,15 +14,17 @@ source:
   # the artifacts should be sourced from. For example, the GitHub provider
   # has the following properties: repository, branch.
   properties:
-    access_token_secret: github-token-emoji-race-emoji-race
-    branch: mainline
-    repository: https://github.com/efekarakus/emoji-race
+    access_token_secret: github-token-buildpack-demo-emoji-race
+    branch: master
+    repository: https://github.com/nthomson-amazon/emoji-race
 
 # The deployment section defines the order the pipeline will deploy
 # to your environments.
 stages:
     - # The name of the environment to deploy to.
       name: test
+      # Optional: flag for manual approval action before deployment.
+      # requires_approval: true
       # Optional: use test commands to validate this stage of your build.
       # test_commands: [echo 'running tests', make test]
 
