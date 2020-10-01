@@ -86,6 +86,7 @@ phases:
             echo "Pack context: $build_context"
             echo "Running command: ./pack build $svc:build --path $build_context --builder $build_builder";
             ./pack build $svc:build --path $build_context --builder $build_builder
+            docker tag $svc:build $svc:$tag
           else
             dockerfile_args=$(echo $manifest | jq 'if .image.build?.args? then .image.build.args else "" end | to_entries?')
             df_rel_path=$( echo $base_dockerfile | sed 's/"//g')
