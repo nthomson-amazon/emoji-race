@@ -61,6 +61,7 @@ phases:
             $(aws ecr get-login --no-include-email --region $region);
             image=$(echo $repo | cut -d':' -f1)
             docker pull $image:cache || true;
+            docker tag $image:cache $svc:build || true;
           done;
         done;
       # Build images
@@ -83,8 +84,8 @@ phases:
             echo "Service: $svc"
             echo "Pack builder: $build_builder"
             echo "Pack context: $build_context"
-            echo "Running command: ./pack build $svc --path $build_context --builder $build_builder";
-            ./pack build $svc --path $build_context --builder $build_builder
+            echo "Running command: ./pack build $svc:build --path $build_context --builder $build_builder";
+            ./pack build $svc:build --path $build_context --builder $build_builder
           else
             dockerfile_args=$(echo $manifest | jq 'if .image.build?.args? then .image.build.args else "" end | to_entries?')
             df_rel_path=$( echo $base_dockerfile | sed 's/"//g')
