@@ -60,7 +60,7 @@ phases:
           manifest=$(cat $CODEBUILD_SRC_DIR/copilot/$svc/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
           base_dockerfile=$(echo $manifest | jq '.image.build')
           build_dockerfile=$(echo $manifest| jq 'if .image.build?.dockerfile? then .image.build.dockerfile else "" end' | sed 's/"//g')
-          build_builder=$(echo $manifest| jq 'if .image.build?.dockerfile? then .image.build.builder else "" end' | sed 's/"//g')
+          build_builder=$(echo $manifest| jq 'if .image.build?.builder? then .image.build.builder else "" end' | sed 's/"//g')
           build_context=$(echo $manifest| jq 'if .image.build?.context? then .image.build.context else "" end' | sed 's/"//g')
           if [ -n "$build_builder" ]; then
             if [ -z "$build_context" ]; then
