@@ -9,11 +9,11 @@ phases:
       - echo "cd into $CODEBUILD_SRC_DIR"
       - cd $CODEBUILD_SRC_DIR
       # Download the copilot linux binary.
-      - wget https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v0.4.0
-      - mv ./copilot-linux-v0.4.0 ./copilot-linux
+      - wget -q https://ecs-cli-v2-release.s3.amazonaws.com/copilot-linux-v0.4.0-17-g9e1cfeb
+      - mv ./copilot-linux-v0.4.0-17-g9e1cfeb ./copilot-linux
       - chmod +x ./copilot-linux
       # Download the pack linux binary
-      - wget https://github.com/buildpacks/pack/releases/download/v0.14.0/pack-v0.14.0-linux.tgz -O - | tar -xz
+      - wget -q https://github.com/buildpacks/pack/releases/download/v0.14.0/pack-v0.14.0-linux.tgz -O - | tar -xz
       - chmod +x ./pack
   build:
     commands:
@@ -48,13 +48,27 @@ phases:
             jq --arg a "https://stackset-buildpack-demo-pipelinebuiltartifactbuc-188wfdcjbabhy.s3-us-west-2.amazonaws.com/manual/$timestamp/$svc.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' ./infrastructure/$svc-test.params.json > "$tmp" && mv "$tmp" ./infrastructure/$svc-test.params.json
           fi
         done;
+      # Pull existing images if they exist for caching purposes
+      # - For each manifest file:
+      #   - For each environment:
+      #     - Retrieve the ECR repository.
+      #     - Login and pull the image (ignore error if missing)
+      - |
+        for svc in $svcs; do
+          for env in $envs; do
+            repo=$(cat $CODEBUILD_SRC_DIR/infrastructure/$svc-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
+            region=$(echo $repo | cut -d'.' -f4);
+            $(aws ecr get-login --no-include-email --region $region);
+            image=$(echo $repo | cut -d':' -f1)
+            docker pull $image:cache || true;
+          done;
+        done;
       # Build images
       # - For each manifest file:
       #   - Read the path to the Dockerfile by translating the YAML file into JSON.
       #   - Run docker build.
       #   - For each environment:
-      #     - Retrieve the ECR repository.
-      #     - Login and push the image.
+      #     - Push the image.
       - >
         for svc in $svcs; do
           manifest=$(cat $CODEBUILD_SRC_DIR/copilot/$svc/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
@@ -69,8 +83,8 @@ phases:
             echo "Service: $svc"
             echo "Pack builder: $build_builder"
             echo "Pack context: $build_context"
-            echo "Running command: ./pack build $svc:$tag --path $build_context --builder $build_builder";
-            ./pack build $svc:$tag --path $build_context --builder $build_builder
+            echo "Running command: ./pack build $svc --path $build_context --builder $build_builder";
+            ./pack build $svc --path $build_context --builder $build_builder
           else
             dockerfile_args=$(echo $manifest | jq 'if .image.build?.args? then .image.build.args else "" end | to_entries?')
             df_rel_path=$( echo $base_dockerfile | sed 's/"//g')
@@ -98,11 +112,11 @@ phases:
           image_id=$(docker images -q $svc:$tag);
           for env in $envs; do
             repo=$(cat $CODEBUILD_SRC_DIR/infrastructure/$svc-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
-            echo "Repo got is $repo | Image id is $image_id"
-            region=$(echo $repo | cut -d'.' -f4);
-            $(aws ecr get-login --no-include-email --region $region);
             docker tag $image_id $repo;
             docker push $repo;
+            image=$(echo $repo | cut -d':' -f1)
+            docker tag $image_id $image:cache;
+            docker push $image:cache;
           done;
         done;
 artifacts:
