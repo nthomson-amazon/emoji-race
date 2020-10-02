@@ -48,28 +48,13 @@ phases:
             jq --arg a "https://stackset-buildpack-demo-pipelinebuiltartifactbuc-188wfdcjbabhy.s3-us-west-2.amazonaws.com/manual/$timestamp/$svc.addons.stack.yml" '.Parameters.AddonsTemplateURL = $a' ./infrastructure/$svc-test.params.json > "$tmp" && mv "$tmp" ./infrastructure/$svc-test.params.json
           fi
         done;
-      # Pull existing images if they exist for caching purposes
-      # - For each manifest file:
-      #   - For each environment:
-      #     - Retrieve the ECR repository.
-      #     - Login and pull the image (ignore error if missing)
-      - |
-        for svc in $svcs; do
-          for env in $envs; do
-            repo=$(cat $CODEBUILD_SRC_DIR/infrastructure/$svc-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
-            region=$(echo $repo | cut -d'.' -f4);
-            $(aws ecr get-login --no-include-email --region $region);
-            image=$(echo $repo | cut -d':' -f1)
-            docker pull $image:cache || true;
-            docker tag $image:cache $svc:build || true;
-          done;
-        done;
       # Build images
       # - For each manifest file:
       #   - Read the path to the Dockerfile by translating the YAML file into JSON.
       #   - Run docker build.
       #   - For each environment:
-      #     - Push the image.
+      #     - Retrieve the ECR repository.
+      #     - Login and push the image.
       - >
         for svc in $svcs; do
           manifest=$(cat $CODEBUILD_SRC_DIR/copilot/$svc/manifest.yml | ruby -ryaml -rjson -e 'puts JSON.pretty_generate(YAML.load(ARGF))')
@@ -84,9 +69,8 @@ phases:
             echo "Service: $svc"
             echo "Pack builder: $build_builder"
             echo "Pack context: $build_context"
-            echo "Running command: ./pack build $svc:build --path $build_context --builder $build_builder";
-            ./pack build $svc:build --path $build_context --builder $build_builder
-            docker tag $svc:build $svc:$tag
+            echo "Running command: ./pack build $svc --path $build_context --builder $build_builder";
+            ./pack build $svc:$tag --path $build_context --builder $build_builder
           else
             dockerfile_args=$(echo $manifest | jq 'if .image.build?.args? then .image.build.args else "" end | to_entries?')
             df_rel_path=$( echo $base_dockerfile | sed 's/"//g')
@@ -114,11 +98,10 @@ phases:
           image_id=$(docker images -q $svc:$tag);
           for env in $envs; do
             repo=$(cat $CODEBUILD_SRC_DIR/infrastructure/$svc-$env.params.json | jq '.Parameters.ContainerImage' | sed 's/"//g');
+            region=$(echo $repo | cut -d'.' -f4);
+            $(aws ecr get-login --no-include-email --region $region);
             docker tag $image_id $repo;
             docker push $repo;
-            image=$(echo $repo | cut -d':' -f1)
-            docker tag $image_id $image:cache;
-            docker push $image:cache;
           done;
         done;
 artifacts:
